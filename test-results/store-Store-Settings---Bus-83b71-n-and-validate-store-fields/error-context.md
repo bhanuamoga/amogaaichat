@@ -1,0 +1,53 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - img [ref=e5]
+      - heading "Morr appz" [level=1] [ref=e7]
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - heading "Login" [level=1] [ref=e10]
+        - paragraph [ref=e11]:
+          - text: Enter your email and password below
+          - text: to log into your account
+      - generic [ref=e14]:
+        - generic [ref=e15]:
+          - generic [ref=e16]: Email
+          - textbox "Email" [ref=e17]: Naveen311@example.com
+        - generic [ref=e18]:
+          - generic [ref=e19]:
+            - generic [ref=e20]: Password
+            - link "Forgot password?" [ref=e21] [cursor=pointer]:
+              - /url: "#"
+          - generic [ref=e22]:
+            - textbox "Password" [active] [ref=e23]: Bhanu@311r
+            - button [ref=e24] [cursor=pointer]:
+              - img
+        - button "Login" [ref=e25] [cursor=pointer]
+        - paragraph [ref=e26]:
+          - text: You want create new account?
+          - link "Sign Up" [ref=e27] [cursor=pointer]:
+            - /url: /sign-up
+        - generic [ref=e32]: Or continue with
+        - generic [ref=e33]:
+          - button "GitHub" [ref=e34] [cursor=pointer]:
+            - img
+            - text: GitHub
+          - button "Facebook" [ref=e35] [cursor=pointer]:
+            - img
+            - text: Facebook
+      - paragraph [ref=e36]:
+        - text: By clicking login, you agree to our
+        - link "Terms of Service" [ref=e37] [cursor=pointer]:
+          - /url: "#"
+        - text: and
+        - link "Privacy Policy" [ref=e38] [cursor=pointer]:
+          - /url: "#"
+        - text: .
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e44] [cursor=pointer]:
+    - img [ref=e45] [cursor=pointer]
+  - alert [ref=e48]
+```

@@ -1,0 +1,16 @@
+[?9001h[?1004h[?25l[2J[m[2;1H> web@0.1.0 build D:\Morrrepos\amogamonoblocks\apps\web
+> next build[5;1H]0;C:\WINDOWS\system32\cmd.exe[?25h[?25l [33m[1m⚠[m Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of D:\Morrrepos\amogamonoblocks\pnpm-lock.yaml as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * D:\Morrrepos\amogamonoblocks\apps\web\pnpm-lock.yaml[12;1H[?25h   [38;2;173;127;168m[1m▲ Next.js 15.5.3
+[?25l[m   - Environments: .env[15;1H[?25h [37m[1m [m Creating an optimized production build ...
+uncaughtException [Error: EPERM: operation not permitted, open 'D:\Morrrepos\amogamonoblocks\apps\web\.next\trace'] {
+  errno: [33m-4048[m,
+  code: [32m'EPERM'[m,
+  syscall: [32m'open'[m,
+  path: [32m'D:\\Morrrepos\\amogamonoblocks\\apps\\web\\.next\\trace'[m
+}
+[30m[41m ELIFECYCLE [m [31mCommand failed with exit code 1.[m
+[?9001l[?1004l
