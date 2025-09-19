@@ -49,35 +49,10 @@ export async function POST(req: NextRequest) {
         ### For Regular Text:
         Respond with plain text or markdown.
 
-        ### For Tables (Custom Rendering):
-        When the user asks for a table or when data is best represented as a table (but not chart-worthy), return ONLY valid JSON (no markdown code blocks) in the following format:
-
-        {{
-          "content": "Here is the table you requested.",
-          "table": {{
-            "headers": ["Column 1", "Column 2", "Column 3"],
-            "rows": [
-              ["Data 1", "Data 2", "Data 3"],
-              ["Data 4", "Data 5", "Data 6"]
-            ]
-          }}
-        }}
-
-
-        ### For Charts Only:
-        When the user specifically asks for charts or when data is better visualized as a chart, return ONLY valid JSON (no markdown code blocks):
+      
 
         **For Pie Chart or Doughnut Chart:**
-        {{
-          "content": "Here is a pie chart showing the data you requested.",
-          "chart": {{
-            "type": "pie-chart",
-            "title": "Chart Title",
-            "labels": ["Label1", "Label2", "Label3"],
-            "data": [30, 25, 45]
-          }}
-        }}
-
+       
         **For Bar Chart, Line Chart, Radar Chart, or Polar Area Chart:**
         {{
           "content": "Here is a bar/line chart showing the data you requested.",
@@ -243,13 +218,14 @@ export async function POST(req: NextRequest) {
         let fullContent = "";
 
         try {
-          for await (const chunk of stream) {
-            const content = chunk.content || "";
-            fullContent += content;
+         for await (const chunk of stream as AsyncIterable<{ content?: string }>) {
+          const content = chunk.content || "";
+          fullContent += content;
 
-            // Stream the content as it comes
-            controller.enqueue(encoder.encode(content));
-          }
+          // Stream the content as it comes
+          controller.enqueue(encoder.encode(content));
+        }
+
 
           controller.close();
         } catch (error) {

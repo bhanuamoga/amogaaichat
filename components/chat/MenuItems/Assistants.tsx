@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Bot, LoaderCircle } from "lucide-react";
 
-import { getFormSetupData } from "@/app/(authenticated)/langchain-chat/lib/actions";
 import Link from "next/link";
 
 interface FormSetup {
@@ -24,20 +23,7 @@ const Assistants = () => {
   const [assistant, setAssistant] = React.useState<FormSetup[]>([]);
   const [loading, setLoading] = React.useState(false);
 
-  React.useEffect(() => {
-    const fetchAssistant = async () => {
-      try {
-        setLoading(true);
-        const response = await getFormSetupData();
-        setAssistant(response);
-      } catch (error) {
-        throw error;
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAssistant();
-  }, []);
+ 
   return (
     <div>
       <DropdownMenu>

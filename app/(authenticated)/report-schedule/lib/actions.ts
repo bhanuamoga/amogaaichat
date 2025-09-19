@@ -39,7 +39,7 @@ export async function savePrompt(
     prompt_group: "report_schedule",
   };
   try {
-    const { error } = await postgrest.from("prompts_list").insert(payload);
+    const { error } = await postgrest.from("prompts_list" as any).insert(payload);
     if (error) throw error;
     return { success: true };
   } catch (error) {
@@ -55,7 +55,7 @@ export async function getPrompts(): Promise<{
   const session = await auth();
   try {
     const { data, error } = await postgrest
-      .from("prompts_list")
+      .from("prompts_list" as any)
       .select("title,description,status,id")
       .eq("prompt_group", "report_schedule")
       .eq("created_by", session?.user?.user_catalog_id);
@@ -71,7 +71,7 @@ export async function deletePrompt(id: number): Promise<{ success: boolean }> {
   const session = await auth();
   try {
     const { error } = await postgrest
-      .from("prompts_list")
+      .from("prompts_list" as any)
       .delete()
       .eq("id", id)
       .eq("created_by", session?.user?.user_catalog_id);
@@ -89,7 +89,7 @@ export async function getPromptData(
   const session = await auth();
   try {
     const { data, error } = await postgrest
-      .from("prompts_list")
+      .from("prompts_list" as any)
       .select("*")
       .eq("id", id)
       .eq("created_by", session?.user?.user_catalog_id);
@@ -108,7 +108,7 @@ export async function editPromptData(
   const session = await auth();
   try {
     const { error } = await postgrest
-      .from("prompts_list")
+      .from("prompts_list" as any)
       .update(data)
       .eq("id", id)
       .eq("created_by", session?.user?.user_catalog_id);

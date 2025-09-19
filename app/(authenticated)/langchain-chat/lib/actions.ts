@@ -342,34 +342,8 @@ export async function updateMessageStatus({
   }
 }
 
-export async function getFormSetupData() {
-  const session = await auth();
-  try {
-    const { data, error } = await postgrest
-      .from("form_setup")
-      .select("form_id,form_name,status,data_api_url,api_connection_json")
-      .filter("users_json", "cs", `["${session?.user?.user_email}"]`);
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    throw error;
-  }
-}
 
-export async function fetchFormSetupData(formId: string) {
-  try {
-    const { data, error } = await postgrest
-      .from("form_setup")
-      .select(
-        "form_name, form_id, content, data_api_url,content,api_connection_json,db_connection_json,story_api"
-      )
-      .eq("form_id", formId);
-    if (error) return error;
-    return data;
-  } catch (error) {
-    throw error;
-  }
-}
+
 
 export async function fetchChatTitle(id?: string) {
   const session = await auth();
@@ -448,7 +422,7 @@ export async function getPrompts() {
   const session = await auth();
   try {
     const { data, error } = await postgrest
-      .from("prompts_list")
+      .from("prompts_list" as any )
       .select("id,title,description")
       .eq("status", "active")
       .eq("created_by", session?.user?.user_catalog_id)

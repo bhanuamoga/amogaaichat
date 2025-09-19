@@ -209,7 +209,8 @@ export const ChatMessageBubble = React.memo(function ChatMessageBubble(
               li: ({ children }) => <li className="mb-1">{children}</li>,
             }}
           >
-            {message.role === "assistant" ? parsedMessage : message.content}
+            
+            {message.role === "assistant" ? (typeof parsedMessage == "string" ? parsedMessage : "" ) : message.content}
           </ReactMarkdown>
 
           {table && table?.headers?.length > 0 && (
