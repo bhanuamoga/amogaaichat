@@ -55,7 +55,7 @@ export async function getRecords(input: GetContactsSchema) {
       .asAdmin()
       .from("message")
       .select(
-        "role,content,createdAt,prompt_tokens,chat_group,completion_tokens,total_tokens"
+        "role,content,createdAt,prompt_tokens,chat_group,completion_tokens,total_tokens,chatId,id"
       )
       .eq("chat_group", "LangStarter");
     query = applyFilters(query, input, advancedTable);

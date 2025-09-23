@@ -7,6 +7,7 @@ import * as React from "react";
 
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { Checkbox } from "@/components/ui/checkbox";
+import { format } from "date-fns"
 
 
 
@@ -75,13 +76,56 @@ export function getColumns({
       },
     },
     {
-      accessorKey: "createdAt",
+      accessorKey: "id",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Date" />
+        <DataTableColumnHeader column={column} title="Message ID" />
       ),
-      cell: ({ cell }) =>
-        cell.getValue() ? formatDate(cell.getValue() as Date) : "",
+      cell: ({ row }) => {
+        const chatId = row.original.id;
+        if (!chatId) return null;
+
+        return (
+          <div className="flex w-[8rem] items-center">
+            <span className="truncate">{chatId}</span>
+          </div>
+        );
+      },
+      filterFn: (row, id, value) =>
+        Array.isArray(value) && value.includes(row.getValue(id)),
     },
+     {
+      accessorKey: "chatId",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Chat ID" />
+      ),
+      cell: ({ row }) => {
+        const chatId = row.original.chatId;
+        if (!chatId) return null;
+
+        return (
+          <div className="flex w-[8rem] items-center">
+            <span className="truncate">{chatId}</span>
+          </div>
+        );
+      },
+      filterFn: (row, id, value) =>
+        Array.isArray(value) && value.includes(row.getValue(id)),
+    },
+
+    
+  {
+  accessorKey: "createdAt",
+  header: ({ column }) => (
+    <DataTableColumnHeader column={column} title="Date & Time" />
+  ),
+  cell: ({ cell }) =>
+    cell.getValue()
+      ? format(new Date(cell.getValue() as string), "yyyy-MM-dd HH:mm:ss")
+      : "",
+},
+
+
+
     {
       accessorKey: "content",
       header: ({ column }) => (
@@ -90,13 +134,15 @@ export function getColumns({
       cell: ({ row }) => {
         return (
           <div className="flex space-x-2">
-            <span className="max-w-[10rem] truncate font-medium">
+            <span className="w-[11rem] truncate font-medium">
               {row.getValue("content")}
             </span>
           </div>
         );
       },
     },
+
+
     {
       accessorKey: "chat_group",
       header: ({ column }) => (
@@ -121,7 +167,7 @@ export function getColumns({
       cell: ({ row }) => {
         return (
           <div className="flex space-x-2">
-            <span className="max-w-[31.25rem] truncate font-medium">
+            <span className="max-w-[20.25rem] truncate font-medium">
               {row.original.prompt_tokens}
             </span>
           </div>
@@ -136,7 +182,7 @@ export function getColumns({
       cell: ({ row }) => {
         return (
           <div className="flex space-x-2">
-            <span className="max-w-[31.25rem] truncate font-medium">
+            <span className="max-w-[20.25rem] truncate font-medium">
               {row.original.completion_tokens}
             </span>
           </div>
@@ -151,7 +197,7 @@ export function getColumns({
       cell: ({ row }) => {
         return (
           <div className="flex space-x-2">
-            <p className="max-w-[31.25rem] truncate font-medium">
+            <p className="max-w-[20.25rem] truncate font-medium">
               {row.original.total_tokens}
             </p>
           </div>

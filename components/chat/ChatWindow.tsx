@@ -1,7 +1,7 @@
 // chat window
 
 "use client";
-
+import TokenUseMenu from "./MenuItems/TokenUseMenu";
 // import { type Message } from "ai";
 import { useChat } from "ai/react";
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -137,8 +137,10 @@ export function ChatWindow(props: {
   showIntermediateStepsToggle?: boolean;
   chatId?: string;
   shareId?: string;
-   emptyStateComponent?: React.ReactNode;
+  emptyStateComponent?: React.ReactNode;
 }) {
+
+
   const [showIntermediateSteps, setShowIntermediateSteps] = useState(
     !!props.showIntermediateStepsToggle
   );
@@ -163,7 +165,7 @@ export function ChatWindow(props: {
   const [sourcesForMessages, setSourcesForMessages] = useState<
     Record<string, any>
   >({});
-
+  
   const [history, setHistory] = useState<any[]>([]);
   const [important, setImportant] = useState<any[]>([]);
   const [chatBookMarks, setChatBookMarks] = useState<any[]>([]);
@@ -175,10 +177,19 @@ export function ChatWindow(props: {
   const [chatBookMarkLoading, setChatBookMarkLoading] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [bookmarkClickLoading, setBookmarkClickLoading] = useState(false);
-  const usageRef = useRef<any>(null);
+ 
+
+
   const promptId = uuidv4();
   const isMobile = useIsMobile();
   const pathName = usePathname();
+  // inside ChatWindow component with other hooks
+type TokenUsage = {
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+};
+const usageRef = useRef<TokenUsage | null>(null);
 
   // Fetch history when dropdown opens
   const fetchHistory = async () => {
@@ -195,6 +206,8 @@ export function ChatWindow(props: {
       setHistoryLoading(false);
     }
   };
+
+
 
   const fetchPrompts = async () => {
     if (promptsLoading) return;
@@ -283,78 +296,126 @@ export function ChatWindow(props: {
 
   const { data: session } = useSession();
 
-  const chat = useChat({
-    api: props.endpoint,
-    id: currentChatId,
-    body: {
-      language: selectedLanguage,
-      aiModel: selectedAIModel,
-    },
-    streamMode: "text",
-    keepLastMessageOnError: true,
-    onResponse(response) {
-      const sourcesHeader = response.headers.get("x-sources");
-      const sources = sourcesHeader
-        ? JSON.parse(Buffer.from(sourcesHeader, "base64").toString("utf8"))
-        : [];
+const chat = useChat({
+  api: props.endpoint,
+  id: currentChatId,
+  body: {
+    language: selectedLanguage,
+    aiModel: selectedAIModel,
+  },
+  streamMode: "text",
+  keepLastMessageOnError: true,
 
-      const messageIndexHeader = response.headers.get("x-message-index");
-      if (sources.length && messageIndexHeader !== null) {
-        setSourcesForMessages({
-          ...sourcesForMessages,
-          [messageIndexHeader]: sources,
-        });
-      }
-    },
-    onError: (e) =>
-      toast.error(`Error while processing your request`, {
-        description: e.message,
-      }),
-    onFinish: async (message) => {
-      // Save assistant messages to the database
-      if (message.role === "assistant") {
-        try {
-          let chatIdToUse = currentChatId;
-          if (!chatIdToUse) {
-            const pathParts = window.location.pathname.split("/");
-            const chatIdFromUrl = pathParts[pathParts.length - 1];
-            chatIdToUse =
-              chatIdFromUrl && chatIdFromUrl !== "chat"
-                ? chatIdFromUrl
-                : uuidv4();
-          }
+  onResponse(response) {
+    console.log({ Res: response });
 
-        
+    const sourcesHeader = response.headers.get("x-sources");
+    const sources = sourcesHeader
+      ? JSON.parse(Buffer.from(sourcesHeader, "base64").toString("utf8"))
+      : [];
 
-          // Save the original message content to the database
-          await saveMessage({
-            id: message.id || `msg-${Date.now()}`,
-            chatId: chatIdToUse,
-            role: "assistant",
-            content: message.content, // Save original content
-            chat_group: "LangStarter",
-            status: "active",
-            user_id: session?.user?.user_catalog_id || "",
-            createdAt: new Date().toISOString(),
-            isLike: false,
-            bookmark: false,
-            important: false,
-            favorite: false,
-            // prompt_tokens: usageData?.input_tokens,
-            // completion_tokens: usageData?.output_tokens,
-            // total_tokens: usageData?.total_tokens,
-            prompt_uuid: promptId,
-          });
-          // handleHistory();
-        } catch (error) {
-          console.error("Failed to save assistant message:", error);
-          toast.error("Failed to save assistant message");
-        
+    const messageIndexHeader = response.headers.get("x-message-index");
+    if (sources.length && messageIndexHeader !== null) {
+      console.log("message", { messageIndexHeader });
+      console.log({ sources });
+      setSourcesForMessages((prev) => ({
+        ...prev,
+        [messageIndexHeader as any]: sources,
+      }));
+    }
+
+     const usageHeaderRaw = response.headers.get("x-usage");
+  if (usageHeaderRaw) {
+    try {
+      const txt = usageHeaderRaw.trim();
+      const u = JSON.parse(txt);
+      const promptTokens = Number.isFinite(Number(u?.promptTokens)) ? Number(u.promptTokens) : 0;
+      const completionTokens = Number.isFinite(Number(u?.completionTokens)) ? Number(u.completionTokens) : 0;
+      const totalTokens = Number.isFinite(Number(u?.totalTokens)) ? Number(u.totalTokens) : 0;
+
+      usageRef.current = { promptTokens, completionTokens, totalTokens };
+      console.log("Captured usage header:", usageRef.current);
+    } catch (err) {
+      console.warn("Failed to parse x-usage header:", usageHeaderRaw, err);
+    }
+  }
+  },
+
+  onError: (e) =>
+    toast.error(`Error while processing your request`, {
+      description: e.message,
+    }),
+
+  onFinish: async (message, response) => {
+   
+  const sdkUsage = (response as any)?.usage;
+
+  const fromSdk = {
+    promptTokens: Number(sdkUsage?.promptTokens),
+    completionTokens: Number(sdkUsage?.completionTokens),
+    totalTokens: Number(sdkUsage?.totalTokens),
+  };
+
+  const fromHeader = {
+    promptTokens: Number(usageRef.current?.promptTokens),
+    completionTokens: Number(usageRef.current?.completionTokens),
+    totalTokens: Number(usageRef.current?.totalTokens),
+  };
+
+  const safeNum = (n: any) => (Number.isFinite(n) ? n : 0);
+
+  const tokenUsage: TokenUsage = {
+    promptTokens: safeNum(Number.isFinite(fromSdk.promptTokens) ? fromSdk.promptTokens : fromHeader.promptTokens),
+    completionTokens: safeNum(Number.isFinite(fromSdk.completionTokens) ? fromSdk.completionTokens : fromHeader.completionTokens),
+    totalTokens: safeNum(Number.isFinite(fromSdk.totalTokens) ? fromSdk.totalTokens : fromHeader.totalTokens),
+  };
+
+
+    
+
+    // Save assistant messages to the database
+    if (message.role === "assistant") {
+      try {
+        let chatIdToUse = currentChatId;
+        if (!chatIdToUse) {
+          const pathParts = window.location.pathname.split("/");
+          const chatIdFromUrl = pathParts[pathParts.length - 1];
+          chatIdToUse =
+            chatIdFromUrl && chatIdFromUrl !== "chat"
+              ? chatIdFromUrl
+              : uuidv4();
         }
+     
+        // Save the assistant message with usage fields
+        await saveMessage({
+          id: message.id || `msg-${Date.now()}`,
+          chatId: chatIdToUse,
+          role: "assistant",
+          content: message.content,
+          chat_group: "LangStarter",
+          status: "active",
+          user_id: (session as any)?.user?.user_catalog_id || "",
+          createdAt: new Date().toISOString(),
+          isLike: false,
+          bookmark: false,
+          important: false,
+          favorite: false,
+          // Make sure these keys match your DB schema or server action mapping
+          prompt_tokens: tokenUsage.promptTokens,
+          completion_tokens: tokenUsage.completionTokens,
+          total_tokens: tokenUsage.totalTokens,
+          prompt_uuid: promptId,
+        });
+      } catch (error) {
+        console.error("Failed to save assistant message:", error);
+        toast.error("Failed to save assistant message");
       }
-    },
-    generateId: () => uuidv4(),
-  });
+    }
+  },
+
+  generateId: () => uuidv4(),
+});
+
 
   // Update the ref whenever chat changes
   useEffect(() => {
@@ -705,7 +766,7 @@ export function ChatWindow(props: {
           toast.error("Chat ID is undefined, cannot copy shared messages");
           return;
         }
-                // Copy all shared messages to the new chat
+        // Copy all shared messages to the new chat
         const copiedMessages = await copySharedMessagesToNewChat(chatId);
 
         // Update the UI with copied messages
@@ -1081,12 +1142,15 @@ export function ChatWindow(props: {
                       onBookmarkClick={handleBookmarkClick}
                     />
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <div className="flex items-center gap-2">
-                      <Coins className="text-yellow-500" />
-                      <span>Token Use</span>
-                    </div>
-                  </DropdownMenuItem>
+                   <DropdownMenuItem>
+                    <TokenUseMenu
+                        chatId={currentChatId}
+                        onDropdownOpen={() => { /* optional: reuse any preload side effects */ }}
+                        onTokenUpdate={() => { /* optional: trigger a refresh elsewhere */ }}
+                        loading={false}
+                    />
+                    </DropdownMenuItem>
+
                   <DropdownMenuItem>
                     <div className="flex items-center gap-2">
                       <Logs className="w-5 h-5 text-muted-foreground" />
@@ -1099,7 +1163,7 @@ export function ChatWindow(props: {
                       <span>Settings</span>
                     </div>
                   </DropdownMenuItem>
-                  
+
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>

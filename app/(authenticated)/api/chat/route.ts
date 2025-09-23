@@ -20,8 +20,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const messages = body.messages ?? [];
     const formattedPreviousMessages = messages.slice(0, -1).map(formatMessage);
-    const currentMessageContent = messages[messages.length - 1].content;
-    const selectedLanguage = body.language;
+    const currentMessageContent = messages[messages.length - 1]?.content ?? "";
+    const selectedLanguage = body.language ?? "en";
     const aiModel = body?.aiModel;
 
     if (!aiModel || aiModel === null) {
@@ -30,14 +30,15 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const provider = aiModel?.provider;
-    let providerModel;
 
-    if (["google", "openai", "mistral","deepseek","grok","claude"].includes(provider)) {
+    const provider = aiModel?.provider;
+    let providerModel: string | undefined;
+
+    if (["google", "openai", "mistral", "deepseek", "grok", "claude"].includes(provider)) {
       providerModel = aiModel?.model;
     }
 
-    const TEMPLATE = `
+   const TEMPLATE = `
         You are a helpful assistant that can provide responses in multiple formats:
 
         1. **For regular text/conversation**: Return plain text or markdown
@@ -160,24 +161,24 @@ export async function POST(req: NextRequest) {
 
     const prompt = PromptTemplate.fromTemplate(TEMPLATE);
 
-    const modelsMap = {
+    const modelsMap: Record<string, any> = {
       openai: new ChatOpenAI({
         temperature: 0.8,
-        model: providerModel,
+        model: providerModel ?? "gpt-4o-mini",
         apiKey: aiModel?.key,
       }),
       google: new ChatGoogleGenerativeAI({
         temperature: 0.8,
-        model: providerModel,
+        model: providerModel ?? "gemini-1.5-pro",
         apiKey: aiModel?.key,
       }),
       grok: new ChatGroq({
-        model: "llama-3.3-70b-versatile",
+        model:providerModel ?? "llama-3.3-70b-versatile",
         temperature: 0,
         apiKey: aiModel?.key,
       }),
       mistral: new ChatMistralAI({
-        model: providerModel,
+        model: providerModel ?? "mistral-large-latest",
         temperature: 0,
         apiKey: aiModel?.key,
       }),
@@ -189,11 +190,11 @@ export async function POST(req: NextRequest) {
       deepseek: new ChatDeepSeek({
         model: "deepseek-chat",
         temperature: 0.8,
-         apiKey: aiModel?.key,
+        apiKey: aiModel?.key,
       }),
     };
 
-    const model = modelsMap[provider];
+    const model = modelsMap[provider as string];
 
     if (!model) {
       return NextResponse.json(
@@ -202,31 +203,59 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Use streaming with proper handling for JSON responses
     const chain = prompt.pipe(model);
 
-    const stream = await chain.stream({
-      chat_history: formattedPreviousMessages.join("\n"),
-      input: currentMessageContent,
-      language: selectedLanguage,
+    // Usage capture + ready signal
+    let finalTokenUsage: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    } | null = null;
+
+    let resolveUsage!: () => void;
+    const usageReady = new Promise<void>((resolve) => {
+      resolveUsage = resolve;
     });
 
-    // Create a custom streaming response that handles both text and JSON
+    const stream = await chain.stream(
+      {
+        chat_history: formattedPreviousMessages.join("\n"),
+        input: currentMessageContent,
+        language: selectedLanguage,
+      },
+      {
+        callbacks: [
+          {
+            handleLLMEnd(output) {
+              const usage = output?.llmOutput?.tokenUsage;
+              if (usage) {
+                finalTokenUsage = {
+                  promptTokens: Number(usage.promptTokens) || 0,
+                  completionTokens: Number(usage.completionTokens) || 0,
+                  totalTokens: Number(usage.totalTokens) || 0,
+                };
+                console.log("Final token usage:", finalTokenUsage);
+              }
+              // Resolve whether usage exists or not, to unblock header attachment
+              resolveUsage();
+            },
+            handleLLMError(err) {
+              console.error("LLM error:", err);
+              resolveUsage();
+            },
+          },
+        ],
+      }
+    );
+
     const encoder = new TextEncoder();
     const readableStream = new ReadableStream({
       async start(controller) {
-        let fullContent = "";
-
         try {
-         for await (const chunk of stream as AsyncIterable<{ content?: string }>) {
-          const content = chunk.content || "";
-          fullContent += content;
-
-          // Stream the content as it comes
-          controller.enqueue(encoder.encode(content));
-        }
-
-
+          for await (const chunk of stream as AsyncIterable<{ content?: string }>) {
+            const content = chunk?.content ?? "";
+            if (content) controller.enqueue(encoder.encode(content));
+          }
           controller.close();
         } catch (error) {
           console.error("Stream error:", error);
@@ -235,7 +264,16 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return new StreamingTextResponse(readableStream);
+    // Wait for token usage to be ready, then set header
+    await usageReady;
+    console.log("x-usage header about to send:", finalTokenUsage);
+
+    const headers = new Headers();
+    if (finalTokenUsage) {
+      headers.set("x-usage", JSON.stringify(finalTokenUsage));
+    }
+
+    return new StreamingTextResponse(readableStream, { headers });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: e.status ?? 500 });
   }

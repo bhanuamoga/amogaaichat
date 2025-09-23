@@ -230,7 +230,7 @@ export async function POST(req: NextRequest) {
 
     const modelResult = await model.invoke(promptValue);
     const usage = modelResult.usage_metadata;
-
+    console.log("Usage metadata:", usage);
     return NextResponse.json({ usage });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: e.status ?? 500 });

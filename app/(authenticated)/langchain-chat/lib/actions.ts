@@ -382,6 +382,28 @@ export async function updateChatTitle(
     throw error;
   }
 }
+// export async function updateChatTokens({
+//   prompt_tokens,
+//   completion_tokens,
+//   total_tokens,
+//   token_cost,
+//   id}
+// ) {
+//   const session = await auth();
+//   try {
+//     const { data, error } = await postgrest
+//       .from("chat")
+//       .update({ prompt_tokens, completion_tokens, total_tokens, token_cost })
+//       .eq("id", id)
+//       .eq("user_id", session?.user?.user_catalog_id)
+//       .single();
+//     if (error) throw error;
+//     return data;
+//   } catch (error) {
+//     console.error("Failed to update chat tokens:", error);
+//     throw error;
+//   }
+// }
 
 export async function getChatBookMarks(chatGroup: string) {
   const session = await auth();
